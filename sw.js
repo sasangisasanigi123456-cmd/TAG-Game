@@ -1,4 +1,4 @@
-// Service Worker - v1.0
+// Improved Service Worker - v1.0
 const CACHE_NAME = 'tag-game-v1';
 const urlsToCache = [
   '/',
@@ -18,75 +18,79 @@ const urlsToCache = [
   '/icons/icon-512.svg'
 ];
 
-// Install Service Worker
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Cache opened');
-        return cache.addAll(urlsToCache).catch((error) => {
-          console.warn('Cache addAll error:', error);
-          // Don't fail on cache errors
-        });
-      })
-      .catch((error) => {
-        console.warn('Cache open error:', error);
+      .then((cache) => cache.addAll(urlsToCache))
+      .catch((err) => {
+        console.warn('sw install: cache addAll failed', err);
       })
   );
   self.skipWaiting();
 });
 
-// Activate Service Worker
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    caches.keys().then(names =>
+      Promise.all(names.map(name => {
+        if (name !== CACHE_NAME) return caches.delete(name);
+      }))
+    )
   );
   self.clients.claim();
 });
 
-// Fetch Event - Serve from cache, fallback to network
+function isSameOrigin(request) {
+  try {
+    return new URL(request.url).origin === self.location.origin;
+  } catch (e) {
+    return false;
+  }
+}
+
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
-  if (event.request.method !== 'GET') {
+  // Only handle GET
+  if (event.request.method !== 'GET') return;
+
+  // Navigation requests: network-first, fallback to cached index.html
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then(networkResponse => {
+          // Optionally update cached index.html for offline fallback
+          if (networkResponse && networkResponse.ok) {
+            const clone = networkResponse.clone();
+            event.waitUntil(
+              caches.open(CACHE_NAME).then(cache => cache.put('/index.html', clone)).catch(()=>{})
+            );
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match('/index.html'))
+    );
     return;
   }
 
+  // Other GET requests: cache-first, then network; only cache same-origin successful responses
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Cache hit - return response
-        if (response) {
-          return response;
+    caches.match(event.request).then(cached => {
+      if (cached) return cached;
+
+      return fetch(event.request).then(networkResponse => {
+        if (!networkResponse) return networkResponse;
+
+        // Cache only same-origin and successful responses (or opaque if desired)
+        if ((networkResponse.ok || networkResponse.type === 'opaque') && isSameOrigin(event.request)) {
+          const copy = networkResponse.clone();
+          event.waitUntil(
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy)).catch(()=>{})
+          );
         }
-
-        return fetch(event.request).then((response) => {
-          // Check if we received a valid response
-          if (!response || response.status !== 200 || response.type === 'error') {
-            return response;
-          }
-
-          // Clone the response
-          const responseToCache = response.clone();
-
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-
-          return response;
-        });
-      })
-      .catch(() => {
-        // Return offline page or cached response
+        return networkResponse;
+      }).catch(() => {
+        // On failure, provide an offline fallback
         return caches.match('/index.html');
-      })
+      });
+    })
   );
 });
