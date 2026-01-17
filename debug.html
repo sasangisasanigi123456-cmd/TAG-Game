@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Game Debug Console</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            overflow: auto;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4ec9b0;
+            margin-bottom: 20px;
+        }
+        .section {
+            background: #252526;
+            border: 1px solid #3e3e42;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .section h2 {
+            color: #569cd6;
+            font-size: 14px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #3e3e42;
+            padding-bottom: 5px;
+        }
+        .status-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: #1e1e1e;
+            border-left: 3px solid #4ec9b0;
+            border-radius: 3px;
+        }
+        .status-item.error {
+            border-left-color: #f48771;
+            color: #f48771;
+        }
+        .status-item.warning {
+            border-left-color: #dcdcaa;
+            color: #dcdcaa;
+        }
+        .status-item.success {
+            border-left-color: #6a9955;
+            color: #6a9955;
+        }
+        button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px 5px 5px 0;
+            font-family: monospace;
+        }
+        button:hover {
+            background: #005a9e;
+        }
+        .console-output {
+            background: #000;
+            color: #00ff00;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 3px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Game Debug Console</h1>
+        
+        <div class="section">
+            <h2>Browser Information</h2>
+            <div id="browserInfo"></div>
+        </div>
+        
+        <div class="section">
+            <h2>File Resources</h2>
+            <div id="fileStatus"></div>
+        </div>
+        
+        <div class="section">
+            <h2>Global Objects</h2>
+            <div id="globalObjects"></div>
+        </div>
+        
+        <div class="section">
+            <h2>Actions</h2>
+            <button onclick="testGame()">🎮 Test Game</button>
+            <button onclick="viewGameConsole()">📜 View Game Console</button>
+            <button onclick="clearLogs()">🗑️ Clear Logs</button>
+        </div>
+        
+        <div class="section">
+            <h2>Console Output</h2>
+            <div class="console-output" id="consoleLogs"></div>
+        </div>
+    </div>
+
+    <script>
+        const logs = [];
+        const consoleLogs = document.getElementById('consoleLogs');
+        
+        // Capture console
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        function addLog(type, ...args) {
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            
+            logs.push(`[${type}] ${message}`);
+            
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.style.color = type === 'error' ? '#f48771' : type === 'warn' ? '#dcdcaa' : '#00ff00';
+            entry.textContent = `[${type}] ${message}`;
+            consoleLogs.appendChild(entry);
+            consoleLogs.scrollTop = consoleLogs.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog(...args);
+            addLog('LOG', ...args);
+        };
+        
+        console.error = function(...args) {
+            originalError(...args);
+            addLog('ERROR', ...args);
+        };
+        
+        console.warn = function(...args) {
+            originalWarn(...args);
+            addLog('WARN', ...args);
+        };
+        
+        // Browser Info
+        function checkBrowserInfo() {
+            const info = document.getElementById('browserInfo');
+            info.innerHTML = `
+                <div class="status-item success">Browser: ${navigator.userAgent.split('(')[0].trim()}</div>
+                <div class="status-item success">Platform: ${navigator.platform}</div>
+                <div class="status-item success">WebGL Support: ${checkWebGL()}</div>
+                <div class="status-item success">WebAssembly Support: ${checkWebAssembly()}</div>
+                <div class="status-item success">Service Worker Support: ${checkServiceWorker()}</div>
+            `;
+        }
+        
+        function checkWebGL() {
+            try {
+                const canvas = document.createElement('canvas');
+                return !!(canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
+            } catch(e) {
+                return false;
+            }
+        }
+        
+        function checkWebAssembly() {
+            return typeof WebAssembly !== 'undefined';
+        }
+        
+        function checkServiceWorker() {
+            return 'serviceWorker' in navigator;
+        }
+        
+        // Check Files
+        async function checkFiles() {
+            const fileStatus = document.getElementById('fileStatus');
+            const files = [
+                'index.html',
+                'style.css',
+                'appmanifest.json',
+                'scripts/main.js',
+                'scripts/c3runtime.js',
+                'scripts/supportcheck.js',
+                'js/analytics_ubg_v1_4.js',
+                'patch/js/poki-sdk.js',
+                'sw.js'
+            ];
+            
+            let html = '';
+            for (const file of files) {
+                try {
+                    const response = await fetch(file, { method: 'HEAD' });
+                    const status = response.ok ? 'success' : 'error';
+                    const icon = response.ok ? '✓' : '✗';
+                    html += `<div class="status-item ${status}">${icon} ${file}</div>`;
+                } catch(e) {
+                    html += `<div class="status-item error">✗ ${file} (${e.message})</div>`;
+                }
+            }
+            fileStatus.innerHTML = html;
+        }
+        
+        // Check Global Objects
+        function checkGlobalObjects() {
+            const globalObjects = document.getElementById('globalObjects');
+            const objects = [
+                { name: 'window.RuntimeInterface', exists: !!window.RuntimeInterface },
+                { name: 'window.DOMHandler', exists: !!window.DOMHandler },
+                { name: 'window.PokiSDK', exists: !!window.PokiSDK },
+                { name: 'window.C3_RegisterSW', exists: !!window.C3_RegisterSW },
+                { name: 'window.OfflineClientInfo', exists: !!window.OfflineClientInfo },
+                { name: 'window.C3_IsSupported', exists: !!window.C3_IsSupported },
+            ];
+            
+            let html = '';
+            objects.forEach(obj => {
+                const status = obj.exists ? 'success' : 'warning';
+                const icon = obj.exists ? '✓' : '○';
+                html += `<div class="status-item ${status}">${icon} ${obj.name}</div>`;
+            });
+            globalObjects.innerHTML = html;
+        }
+        
+        function testGame() {
+            console.log('Opening game...');
+            window.location.href = 'index.html';
+        }
+        
+        function viewGameConsole() {
+            console.log('Open your game, then press F12 to view console');
+        }
+        
+        function clearLogs() {
+            logs.length = 0;
+            consoleLogs.innerHTML = '';
+        }
+        
+        // Initialize
+        window.addEventListener('load', () => {
+            console.log('Debug Console Ready');
+            checkBrowserInfo();
+            checkFiles();
+            checkGlobalObjects();
+        });
+    </script>
+</body>
+</html>

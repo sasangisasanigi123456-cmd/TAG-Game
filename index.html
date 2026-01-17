@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html style="margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;">
+<head>
+<meta charset="UTF-8">
+<title>Tag Unblocked - ubg235 Poki</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+<meta name="generator" content="Scirra Construct">
+	<meta name="author" content="jet">
+	<meta name="description" content="jet">
+	<link rel="manifest" href="appmanifest.json">
+	<link rel="apple-touch-icon" href="icons/icon-128.svg">
+	<link rel="apple-touch-icon" sizes="256x256" href="icons/icon-256.svg">
+	<link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.svg">
+	<link rel="icon" type="image/svg+xml" href="icons/icon-512.svg">
+
+<link rel="stylesheet" href="style.css">
+
+<style>
+html, body {
+	margin: 0;
+	padding: 0;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	background: #000;
+}
+
+canvas {
+	display: block !important;
+	width: 100% !important;
+	height: 100% !important;
+	margin: 0 !important;
+	padding: 0 !important;
+}
+
+#loadingScreen {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: #000;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	color: white;
+	font-family: Arial, sans-serif;
+	z-index: 9999;
+}
+
+.spinner {
+	border: 4px solid rgba(255,255,255,0.3);
+	border-top: 4px solid white;
+	border-radius: 50%;
+	width: 40px;
+	height: 40px;
+	animation: spin 1s linear infinite;
+	margin-right: 20px;
+}
+
+@keyframes spin {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+}
+</style>
+
+</head>
+<body style="margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;">
+
+<div id="loadingScreen">
+	<div class="spinner"></div>
+	<div>Loading Game...</div>
+</div>
+
+<script>
+if (location.protocol.substr(0, 4) === "file")
+{
+	alert("Web exports won't work until you upload them. (When running on the file: protocol, browsers block many features from working for security reasons.)");
+}
+</script>
+	<script src="patch/js/poki-sdk.js"></script>
+	<noscript>
+		<div id="notSupportedWrap">
+			<h2 id="notSupportedTitle">This content requires JavaScript</h2>
+			<p class="notSupportedMessage">JavaScript appears to be disabled. Please enable it to view this content.</p>
+		</div>
+	</noscript>
+	<script src="scripts/supportcheck.js"></script>
+	<script src="scripts/offlineclient.js" type="module"></script>
+	<script src="scripts/main.js" type="module"></script>
+	<script src="scripts/register-sw.js" type="module"></script>
+	<script type="module">
+		// Debug logging
+		console.log('Page loaded, initializing game...');
+		
+		// Hide loading screen when game is ready
+		function hideLoadingScreen() {
+			const loading = document.getElementById('loadingScreen');
+			if (loading) {
+				loading.style.opacity = '0';
+				loading.style.transition = 'opacity 0.5s';
+				setTimeout(() => loading.style.display = 'none', 500);
+			}
+		}
+		
+		// Error handling
+		window.addEventListener('error', (e) => {
+			console.error('Global error:', e.error);
+		});
+		
+		window.addEventListener('unhandledrejection', (event) => {
+			console.error('Unhandled promise rejection:', event.reason);
+		});
+		
+		// Force cache busting for data.json
+		if (window.caches) {
+			try {
+				caches.keys().then(cacheNames => {
+					cacheNames.forEach(cacheName => {
+						caches.delete(cacheName);
+					});
+				});
+			} catch (e) {}
+		}
+		
+		// Clear browser cache
+		if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+			navigator.serviceWorker.getRegistrations().then(regs => {
+				regs.forEach(r => r.unregister());
+			});
+		}
+		
+		// Wait a bit for scripts to load, then try to start
+		setTimeout(() => {
+			console.log('Calling startup functions...');
+			
+			// Call register SW
+			if (window.C3_RegisterSW) {
+				console.log('Registering service worker...');
+				window.C3_RegisterSW();
+			} else {
+				console.log('C3_RegisterSW not found');
+			}
+			
+			// Run startup functions
+			if (window.runOnStartup) {
+				console.log('Running startup functions...');
+				for (const f of (window['c3_runOnStartupFunctions'] || [])) {
+					try {
+						f();
+					} catch(err) {
+						console.error('Startup function error:', err);
+					}
+				}
+			}
+			
+			// Hide loading screen after a delay to let game render
+			setTimeout(hideLoadingScreen, 1000);
+		}, 500);
+		
+		// Also hide on click
+		document.addEventListener('click', hideLoadingScreen);
+	</script>
+  <script src="js/analytics_ubg_v1_4.js"></script>
+  <script src="js/ubg235_client_v1_2.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <style>
+      .bg { fill: #FF6B6B; }
+      .text { font-size: 192px; font-weight: bold; fill: white; font-family: Arial; }
+    </style>
+  </defs>
+  <rect class="bg" width="512" height="512" rx="96"/>
+  <text class="text" x="50%" y="50%" dominant-baseline="middle" text-anchor="middle">TAG</text>
+  <circle cx="384" cy="128" r="64" fill="#FFD93D" stroke="white" stroke-width="8"/>
+</svg>

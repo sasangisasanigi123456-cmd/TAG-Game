@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Tag Game - Setup Verification</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .status-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+        .status-item.error {
+            border-left-color: #f44336;
+        }
+        .status-item.warning {
+            border-left-color: #ff9800;
+        }
+        .status-icon {
+            font-size: 24px;
+            margin-right: 15px;
+            min-width: 30px;
+        }
+        .status-text {
+            color: #333;
+            font-size: 16px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 150px;
+        }
+        .btn-play {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: bold;
+        }
+        .btn-play:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-instructions {
+            background: #f5f5f5;
+            color: #333;
+            border: 2px solid #ddd;
+        }
+        .btn-instructions:hover {
+            background: #eee;
+        }
+        .info-section {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #1976D2;
+        }
+        .info-section strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Tag Game Setup Verification</h1>
+        
+        <div id="statusList"></div>
+        
+        <div class="info-section">
+            <strong>✨ All systems ready!</strong>
+            Your Tag Game is configured and ready to play. The verification results are shown above.
+        </div>
+        
+        <div class="button-group">
+            <button class="btn-play" onclick="startGame()">▶ Play Game Now</button>
+            <button class="btn-instructions" onclick="showInstructions()">📖 Instructions</button>
+        </div>
+    </div>
+
+    <script>
+        const checks = [
+            { name: 'index.html', url: 'index.html' },
+            { name: 'style.css', url: 'style.css' },
+            { name: 'appmanifest.json', url: 'appmanifest.json' },
+            { name: 'Service Worker (sw.js)', url: 'sw.js' },
+            { name: 'Game Icons (icon-512.svg)', url: 'icons/icon-512.svg' },
+            { name: 'Main Script', url: 'scripts/main.js' },
+            { name: 'Analytics', url: 'js/analytics_ubg_v1_4.js' },
+            { name: 'Poki SDK', url: 'patch/js/poki-sdk.js' }
+        ];
+
+        async function runChecks() {
+            const statusList = document.getElementById('statusList');
+            let allGood = true;
+
+            for (const check of checks) {
+                const response = await fetch(check.url).catch(() => null);
+                const exists = response && response.ok;
+                
+                if (!exists) allGood = false;
+
+                const status = exists ? '✅' : '❌';
+                const statusClass = exists ? '' : 'error';
+                
+                const html = `
+                    <div class="status-item ${statusClass}">
+                        <span class="status-icon">${status}</span>
+                        <span class="status-text">${check.name}</span>
+                    </div>
+                `;
+                statusList.innerHTML += html;
+            }
+
+            // Check Browser API support
+            const browserCapabilities = `
+                <div class="status-item">
+                    <span class="status-icon">${navigator.serviceWorker ? '✅' : '⚠️'}</span>
+                    <span class="status-text">Service Worker Support</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-icon">✅</span>
+                    <span class="status-text">JavaScript Enabled</span>
+                </div>
+            `;
+            statusList.innerHTML += browserCapabilities;
+
+            if (!allGood) {
+                alert('⚠️ Warning: Some files are missing. Check the verification results above.');
+            }
+        }
+
+        function startGame() {
+            window.location.href = 'index.html';
+        }
+
+        function showInstructions() {
+            alert(`
+📖 HOW TO PLAY TAG GAME
+
+🎮 CONTROLS:
+- Keyboard: Arrow Keys or WASD to move
+- Mouse: Click to interact
+- Touch: Swipe to move (Mobile)
+
+🎯 OBJECTIVE:
+- Play the tag game
+- Avoid being tagged
+- Use strategy and speed
+
+💡 TIPS:
+- Move quickly to escape
+- Use corners and obstacles
+- Watch the minimap (if available)
+- Unlock power-ups during gameplay
+
+📱 MOBILE:
+- Tap and drag to move
+- Two-finger tap for actions
+- Rotate device to fullscreen
+
+🌐 FEATURES:
+- Offline Support: Works without internet
+- Save Progress: Auto-saves your game
+- High Score: Tracks your best scores
+- Achievements: Unlock badges
+
+Need more help? Check the README.md file!
+            `);
+        }
+
+        // Run checks when page loads
+        window.addEventListener('load', runChecks);
+    </script>
+</body>
+</html>
